@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential client inquiry with full pipeline tracking.",
+      "type": "object",
+      "properties": {
+        "leadName": { "type": "string", "description": "Name of the lead contact." },
+        "company": { "type": "string", "description": "Company or brand name." },
+        "phone": { "type": "string", "description": "Phone number." },
+        "email": { "type": "string", "format": "email", "description": "Email address." },
+        "source": { 
+          "type": "string", 
+          "enum": ["Instagram", "Website", "Referral", "Cold Call", "LinkedIn", "Other"],
+          "description": "Lead source." 
+        },
+        "ownerId": { "type": "string", "description": "UID of the lead owner." },
+        "stage": { 
+          "type": "string", 
+          "enum": ["New", "Contacted", "Qualified", "Meeting done", "Proposal shared", "Interested", "Delayed", "Won", "Lost"],
+          "description": "Current pipeline stage." 
+        },
+        "stageChangedAt": { "type": "string", "format": "date-time" },
+        "expectedCloseDate": { "type": "string", "format": "date-time" },
+        "stageHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "stage": { "type": "string" },
+              "enteredAt": { "type": "string", "format": "date-time" },
+              "exitedAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "nextAction": { "type": "string", "description": "Mandatory next action description." },
+        "nextActionDate": { "type": "string", "format": "date-time", "description": "Due date for next action." },
+        "requirementSummary": { "type": "string" },
+        "budgetBucket": { 
+          "type": "string", 
+          "enum": ["Low", "Medium", "High", "Enterprise"],
+          "description": "Budget classification." 
+        },
+        "isDecisionMakerIdentified": { "type": "boolean" },
+        "probability": { "type": "number", "description": "Closure probability (0-100)." },
+        "dealValue": { "type": "number", "description": "Mandatory before proposal stage." },
+        "temperature": { 
+          "type": "string", 
+          "enum": ["hot", "warm", "cold", "Delayed", "Not interested"],
+          "description": "Lead temperature bucket." 
+        },
+        "lostReason": { "type": "string", "description": "Mandatory if stage is Lost." },
+        "lastActivityAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["leadName", "email", "phone", "source", "ownerId", "stage", "createdAt", "nextAction", "nextActionDate"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Log of calls, meetings, and notes for a lead.",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "type": { "type": "string", "enum": ["call", "meeting", "note", "email"] },
+        "feedbackLevel": { "type": "string", "enum": ["Positive", "Neutral", "Negative", "Follow-up Needed"] },
+        "content": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["leadId", "type", "content", "createdBy", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A team member.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "sales", "creative"] },
+        "photoURL": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "In-app notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user to receive the notification." },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "message", "type", "read", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of leads."
+    },
+    "/leads/{leadId}/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "Activities associated with a lead."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Team members."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "In-app notifications."
+    }
+  }
+}

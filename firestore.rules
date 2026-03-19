@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid)) 
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data 
+        : {};
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "sangeet@socialcloudventures.com" && request.auth.token.email_verified == true) ||
+        getUserData().get('role', 'none') == 'admin'
+      );
+    }
+
+    function isTeamMember() {
+      return isAuthenticated() && (
+        getUserData().get('role', 'none') in ['admin', 'sales', 'creative']
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.ownerId;
+    }
+
+    function isNotificationOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidLead(data) {
+      let stages = ["New", "Contacted", "Qualified", "Meeting done", "Proposal shared", "Interested", "Delayed", "Won", "Lost"];
+      let sources = ["Instagram", "Website", "Referral", "Cold Call", "LinkedIn", "Other"];
+      let temperatures = ["hot", "warm", "cold", "Delayed", "Not interested"];
+      
+      return data.leadName is string && data.leadName.size() > 0 && data.leadName.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.phone is string && data.phone.size() >= 10 &&
+             data.source in sources &&
+             data.stage in stages &&
+             data.temperature in temperatures &&
+             data.nextAction is string && data.nextAction.size() > 0 &&
+             data.nextActionDate is string &&
+             // Deal value mandatory before proposal stage
+             (data.stage in ["New", "Contacted", "Qualified", "Meeting done"] || (data.dealValue is number && data.dealValue > 0)) &&
+             // Lost reason mandatory
+             (data.stage != "Lost" || (data.lostReason is string && data.lostReason.size() > 0));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /leads/{leadId} {
+      allow read: if isAdmin() || isTeamMember() || isDocOwner();
+      
+      allow create: if isTeamMember() && 
+                    request.resource.data.ownerId == request.auth.uid &&
+                    isValidLead(request.resource.data);
+      
+      allow update: if (isAdmin() || isTeamMember() || isDocOwner()) &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    request.resource.data.ownerId == resource.data.ownerId &&
+                    isValidLead(request.resource.data);
+      
+      allow delete: if isAdmin();
+
+      match /activities/{activityId} {
+        allow read: if isAdmin() || isTeamMember();
+        allow create: if isTeamMember() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if false; // Activities are immutable logs
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && (request.resource.data.role == 'sales' || isAdmin());
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isNotificationOwner();
+      allow create: if isAuthenticated(); // Allow system or other users to notify
+      allow update: if isNotificationOwner() && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isNotificationOwner();
+    }
+  }
+}
