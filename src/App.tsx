@@ -107,7 +107,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 type LeadStage = 'New' | 'Contacted' | 'Qualified' | 'Meeting done' | 'Proposal shared' | 'Interested' | 'Delayed' | 'Won' | 'Lost';
 type LeadSource = 'Instagram' | 'Website' | 'Referral' | 'Cold Call' | 'LinkedIn' | 'Other';
-type LeadTemperature = 'Cold' | 'Warm' | 'Hot' | 'Very Hot' | 'Delayed' | 'Not interested';
+type LeadTemperature = 'cold' | 'warm' | 'hot' | 'Delayed' | 'Not interested';
 type BudgetBucket = 'Low' | 'Medium' | 'High' | 'Enterprise';
 type ActivityType = 'call' | 'meeting' | 'note' | 'email';
 type FeedbackLevel = 'Positive' | 'Neutral' | 'Negative' | 'Follow-up Needed';
@@ -202,10 +202,9 @@ const LEAD_SOURCES: LeadSource[] = [
 ];
 
 const TEMPERATURE_COLORS = {
-  'Cold': 'bg-blue-100 text-blue-700 border-blue-200',
-  'Warm': 'bg-orange-100 text-orange-700 border-orange-200',
-  'Hot': 'bg-red-100 text-red-700 border-red-200',
-  'Very Hot': 'bg-purple-100 text-purple-700 border-purple-200',
+  'cold': 'bg-blue-100 text-blue-700 border-blue-200',
+  'warm': 'bg-orange-100 text-orange-700 border-orange-200',
+  'hot': 'bg-red-100 text-red-700 border-red-200',
   'Delayed': 'bg-zinc-100 text-zinc-700 border-zinc-200',
   'Not interested': 'bg-zinc-100 text-zinc-700 border-zinc-200'
 };
@@ -362,7 +361,7 @@ const qualifyLeadAI = async (rawInquiry: string) => {
       - leadName (string)
       - company (string)
       - requirementType (string)
-      - temperature (Cold, Warm, Hot, Very Hot)
+      - temperature (cold, warm, hot)
       - seriousness (0-10)
       - budgetReadiness (0-10)
       - urgency (0-10)
@@ -658,7 +657,7 @@ export default function App() {
       nextAction: formData.get('nextAction') as string || 'Initial contact',
       nextActionDate: formData.get('nextActionDate') as string || addDays(new Date(), 1).toISOString(),
       probability: 10,
-      temperature: 'Warm',
+      temperature: 'warm',
       lastActivityAt: now,
       createdAt: now,
       updatedAt: now,
@@ -745,7 +744,7 @@ export default function App() {
               nextAction: 'Initial contact',
               nextActionDate: addDays(new Date(), 1).toISOString(),
               probability: 10,
-              temperature: 'Warm',
+              temperature: 'warm',
               lastActivityAt: now,
               createdAt: now,
               updatedAt: now,
@@ -866,9 +865,9 @@ export default function App() {
         leadName: result.leadName || 'New Inquiry',
         company: result.company || '',
         requirementType: result.requirementType || '',
-        stage: 'New Lead' as LeadStage,
-        temperature: result.temperature || 'Warm',
-        ownerUid: user.uid,
+        stage: 'New' as LeadStage,
+        temperature: (result.temperature?.toLowerCase() || 'warm') as LeadTemperature,
+        ownerId: user.uid,
         createdAt: now,
         updatedAt: now,
         probability: result.probability || 0,
