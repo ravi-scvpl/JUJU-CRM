@@ -611,6 +611,13 @@ export default function App() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Lead));
       setLeads(leadsData);
+      
+      // Update selectedLead to reflect new database state in the background
+      setSelectedLead(prev => {
+        if (!prev) return null;
+        const updated = leadsData.find(l => l.id === prev.id);
+        return updated || prev;
+      });
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'leads');
     });
@@ -709,6 +716,11 @@ export default function App() {
     if (updates.nextAction === '') {
       alert('Next action is mandatory.');
       return;
+    }
+
+    // Optimistically update the UI so typing doesn't lose cursor or wipe text
+    if (selectedLead?.id === id) {
+      setSelectedLead(prev => prev ? { ...prev, ...finalUpdates } : null);
     }
 
     try {
